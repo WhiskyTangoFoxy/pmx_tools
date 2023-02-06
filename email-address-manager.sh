@@ -1,4 +1,11 @@
 #!/bin/bash
+# ver 1.3
+clear
+
+if [ "$EUID" -ne 0 ]; then 
+  echo "Please run as root or with sudo."
+  exit
+fi
 
 read -p "Enter email address: " email
 email_part1="${email%@*}"
@@ -15,8 +22,14 @@ if grep -wq "$email_part1" "$file_path"; then
     sudo sed -i "/$email_part1/d" "$file_path"
     read -p "File updated. Hash? (y/n) " hash
     if [ "$hash" == "y" ]; then
-      sudo /opt/pmx6/postfix/sbin/postmap hash:"$file_path"
-      sudo /opt/pmx6/postfix/etc/init.d/postfix restart
+      if ! sudo /opt/pmx6/postfix/sbin/postmap hash:"$file_path"; then
+        echo "Error: postmap command failed."
+        exit 1
+      fi
+      if ! sudo /opt/pmx6/postfix/etc/init.d/postfix restart; then
+        echo "Error: postfix restart command failed."
+        exit 1
+      fi
     fi
   fi
 else
@@ -28,8 +41,17 @@ else
     sudo sh -c "echo '$email OK' >> $file_path"
     read -p "File updated. Hash? (y/n) " hash
     if [ "$hash" == "y" ]; then
-      sudo /opt/pmx6/postfix/sbin/postmap hash:"$file_path"
-      sudo /opt/pmx6/postfix/etc/init.d/postfix restart
+      if ! sudo /opt/pmx6/postfix/sbin/postmap hash:"$file_path"; then
+        echo "Error: postmap command failed."
+        exit 1
+      fi
+      if ! sudo /opt/pmx6/postfix/etc/init.d/postfix restart; then
+        echo "Error: postfix restart command failed."
+        exit 1
+       fi
+      fi
     fi
   fi
-fi
+
+# Ask to test email.
+/usr/games/cowsay -f dragon-and-cow "Run test-email.sh to make sure it works"
